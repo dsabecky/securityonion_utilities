@@ -1,0 +1,718 @@
+#!/bin/bash
+######################################################################
+# These are all of your configurations for the script.
+#
+# su_editor     - the text editor you want to invoke.
+#
+# NOTE: The "backup" settings are only required if you use the network
+#       backup functions!
+# su_backupUser - your network backup user account
+# su_backupHost - your network backup host address
+# su_backupPath - your network backup file path
+# su_backupArgs - (optional) extra arguments to execute during rsync
+#                 NOTE: if backing up to a Synology NAS, you must
+#                 specify --rsync-path=/usr/bin/rsync
+######################################################################
+
+su_editor=nano
+
+su_backupUser=
+su_backupHost=
+su_backupPath=
+su_backupArgs=
+
+
+
+######################################################################
+# PLEASE DO NOT EDIT BELOW THIS. THANK YOU. I LOVE YOU. <3
+######################################################################
+# Written by Dustin Sabecky
+######################################################################
+# CHANGELOG
+#
+# + Added feature
+# - Removed feature
+# / Changed feature
+# ! Fixed a bug
+#
+######################################################################
+#
+# Build 5 (2/11/2019)
+#####################
+#
+# ! Snort version injection wasn't stripping the periods.
+# / Renumbered menu options that they all have numeric values and
+#   options that have character shortcuts are now annotated inline.
+# / sostat moved to the top of the tools section.
+# / Tabbing was space instead of tab in certain functions.
+# - Additional arguments ($@) from sudo. Unneccesary.
+# + Clearing backlogged events from the system now has its
+#   own option.
+#
+#
+# Build 4 (02/07/2019)
+######################
+#
+# ! Signature files/temp path parsing would also filter out anything
+#   with a comment AFTER the path. This now only checks for # at the
+#   BEGINNING of a line.
+# ! Copied signatures no longer have improper file permissions set.
+# ! Dynamically injects the snort version into the filename of
+#   snortrules-snapshot since it's not included in rule_url.
+# + Sguil user creation.
+# + Sguil password change.
+# + Sguil user disable.
+#
+#
+# Build 3 (02/05/2019)
+######################
+#
+# + Option to create a desktop shortcut.
+# + Option to install (read update) new signatures.
+# / mkdir "if" checks are now single line.
+# / Review log checks are now single line.
+# / Moved Backups and Misc to the right due to default terminal
+#   height limits.
+#
+#
+# Build 2 (02/03/2019)
+######################
+#
+# ! Main menu wasn't "resetting" properly if invalid option entered
+# + Changelog character key.
+# / su_ruleUpdate now displays the following log:
+#   /var/nsm/log/sid_changes.log (why reinvent the wheel)
+# / Separators are now 70 # vice 60 (overflow, not enough space)
+# ! Options 10, and Q not properly syntax'd (bold, underline)
+# + Backup dailylogs to a designated network location
+# + Replicate local backups of /etc/nsm to a designated network
+#   location.
+# + local.rules has made its way to the script.
+#
+#
+# Build 1 (02/02/2019)
+######################
+#
+# + Initial commit.
+#
+#
+######################################################################
+
+su_version=5
+
+bold=$(tput bold)
+uline=$(tput smul)
+bu=${bold}${uline}
+nrml=$(tput sgr0)
+
+
+
+######################################################################
+# Elevates you via sudo if you're not currently root.
+######################################################################
+if [[ $(id -u) != 0 ]]; then
+	echo "Not running as root, please elevate via sudo."
+	sudo "$0"
+	exit
+fi
+
+
+
+######################################################################
+# Security Onion Status (sostat).
+#
+# This basically runs sostat.
+######################################################################
+function su_soStat {
+	junk=
+	/usr/sbin/sostat | tee /var/log/nsm/sostat.log
+	printf "\n\nLogged at /var/log/nsm/sostat.log\n"
+	echo -n "Review log? [y/N]: "; read junk
+
+	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sostat.log 2>/dev/null; fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Rule Update.
+#
+# This basically runs rule-update.
+######################################################################
+function su_ruleUpdate {
+	junk=
+	rule-update
+	echo -n "Review log? [y/N]: "; read junk
+
+	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sid_changes.log 2>/dev/null; fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Install New Signatures.
+#
+# Parses pulledpork.conf for your temp directory and what signatures
+# you have enabled, since they are the only ones that it will install,
+# #searches /media (by default), and copies them. 
+######################################################################
+function su_signatureUpdate {
+	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
+	searchdir=/media
+	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
+
+	cat /etc/nsm/pulledpork/pulledpork.conf | grep "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
+	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
+	echo "The following signatures will be searched for:"
+	cat /tmp/pulledpork_signatures
+	echo -n "Directory to search [$searchdir]: "; read junk; searchdir=${junk:=$searchdir}
+  
+	count=1
+	while [[ $count -le $(wc -l < /tmp/pulledpork_signatures) ]]; do
+		temp_file=`head -$count /tmp/pulledpork_signatures | tail -1`
+		find $searchdir -name "$temp_file" -type f -exec rsync -avP {} $temp_path \;
+		if [[ -f $temp_path/$temp_file ]]; then chmod 444 $temp_path/$temp_file; fi
+		count=$((count+1))
+	done
+  
+	printf "\n\nCopy complete. Make sure to run rule update to commit your changes!\n"
+	echo "--- Press [Enter] to continue ---"; read -s
+  
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Snort Replicate.
+#
+# Replicates the template snort.conf over interface
+# snort.conf's. This should be standard as it's really
+# easy to accidentially brick the entire /etc/nsm folder
+# doing this manually.
+######################################################################
+function su_snortReplicate {
+	junk=
+	conf=/etc/nsm/templates/snort/snort.conf
+	echo "This will overwrite the snort.conf in your interfaces with /etc/nsm/templates/snort/snort.conf. Are you sure?"
+	echo -n "[y/N]: "; read junk
+
+	if [[ "$junk" == [yY] ]]; then
+		find /etc/nsm -path $conf -prune -o -name "snort.conf" -exec cp -v $conf {} \;
+		printf "\n\nReplication complete. Make sure to run rule update to commit your changes!\n"
+	fi
+
+	echo "--- Press [Enter] to continue ---"; read -s
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Sensor Restart.
+#
+# This restarts the sensors, which is useful if you do a
+# rule update and your signature is malformed since the
+# sensors fail to come back online.
+######################################################################
+function su_sensorRestart {
+	junk=
+	/usr/sbin/nsm_sensor_ps-restart | tee /var/log/nsm/sensor_restart.log
+	printf "\n\nLogged at /var/log/nsm/sensor_restart.log\n"
+	echo -n "Review log? [y/N]: "; read junk
+
+	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sensor_restart.log 2>/dev/null; fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Clear Backlogged Events
+#
+# This simplifies clearing out "backlogged" (>15,000) events from the
+# sguil database since attempting to flag them inside of squert just
+# causes a timeout; manually doing this is too easy to mess up.
+######################################################################
+function su_clearBacklog {
+	gid=
+	sid=
+
+	echo "This will clear (flag) events with the specified signature."
+	echo -n "Enter the Generator ID (GID) [1]: "; read gid; gid=${gid:=1}
+	echo ""
+
+	while [[ "$sid" == "" ]]; do
+		echo -n "Enter the Signature ID (SID): "; read sid
+	done
+
+	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e "update event set status=1, last_modified=\"2000-01-01 00:00:00\", last_uid=\"sguil\" where event.status=0 and event.signature_gen like \"$gid\" and event.signature_id like \"$sid\";"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Modify Snort Configuration.
+#
+# Opens snort.conf in a text editor, and creates a backup
+# BEFORE you make any changes into the /var/backups/snort
+# directory.
+######################################################################
+function su_editSnort {
+	backup=/var/backups/snort/snort.conf.`date +%m%d%Y_%H%M%S`
+
+	if ! [[ -d /var/backups/snort ]]; then mkdir /var/backups/snort; fi
+
+	cp /etc/nsm/templates/snort/snort.conf $backup
+	printf "Backup created at $backup\n"
+	$su_editor /etc/nsm/templates/snort/snort.conf 2>/dev/null
+	echo "Make sure to run snort replicate to commit your changes!"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Modify PulledPork "Enable Signatures" Config (enablesid.conf)
+#
+# Opens enablesid.conf in a text editor, and creates a backup
+# BEFORE you make any changes into the /var/backups/pulledpork
+# directory.
+######################################################################
+function su_editEnSID {
+	backup=/var/backups/pulledpork/enablesid.conf.`date +%m%d%Y_%H%M%S`
+
+	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+
+	cp /etc/nsm/pulledpork/enablesid.conf $backup
+	printf "Backup created at $backup\n"
+	$su_editor /etc/nsm/pulledpork/enablesid.conf 2>/dev/null
+	echo "Make sure to run rule update to commit your changes!"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Modify PulledPork "Modify Signatures" Config (modifysid.conf)
+#
+# Opens modifysid.conf in a text editor, and creates a backup
+# BEFORE you make any changes into the /var/backups/pulledpork
+# directory.
+######################################################################
+function su_editModSID {
+	backup=/var/backups/pulledpork/modifysid.conf.`date +%m%d%Y_%H%M%S`
+
+	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+
+	cp /etc/nsm/pulledpork/modifysid.conf $backup
+	printf "Backup created at $backup\n"
+	$su_editor /etc/nsm/pulledpork/modifysid.conf 2>/dev/null
+	echo "Make sure to run rule update to commit your changes!"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Modify PulledPork "Disable Signatures" Config (disablesid.conf)
+#
+# Opens disablesid.conf in a text editor, and creates a backup
+# BEFORE you make any changes into the /var/backups/pulledpork
+# directory.
+######################################################################
+function su_editDisSID {
+	backup=/var/backups/pulledpork/disablesid.conf.`date +%m%d%Y_%H%M%S`
+
+	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+
+	cp /etc/nsm/pulledpork/disablesid.conf $backup
+	printf "Backup created at $backup\n"
+	$su_editor /etc/nsm/pulledpork/disablesid.conf 2>/dev/null
+	echo "Make sure to run rule update to commit your changes!"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Modify Snort local.rules
+#
+# Opens local.rules in a text editor, and creates a backup
+# BEFORE you make any changes into the /var/backups/rules
+# directory.
+######################################################################
+function su_editlocalRules {
+	backup=/var/backups/rules/local.rules.`date +%m%d%Y_%H%M%S`
+
+	if ! [[ -d /var/backups/rules ]]; then mkdir /var/backups/rules; fi
+
+	cp /etc/nsm/rules/local.rules $backup
+	printf "Backup created at $backup\n"
+	$su_editor /etc/nsm/rules/local.rules 2>/dev/null
+	echo "Make sure to run rule update to commit your changes!"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# List Users
+#
+# This gives a list of current users.
+######################################################################
+function su_listUsers {
+	printf "List of users:\n\n"
+	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
+	printf "\n\n--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu	
+}
+
+
+
+######################################################################
+# Add User.
+#
+# This exists purely due to nsm_server_user-add doesn't properly
+# sanitize user input and thus executes any special characters
+# entered. This is a security issue, but also makes it impossible
+# to set a "good" password.
+######################################################################
+function su_createUser {
+	su_usr=
+
+	while [[ "$su_usr" == "" ]]; do
+		echo "Please enter the username below (must be alpha-numeric)."
+		echo -n "Username: "; read su_usr
+	done
+
+	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -adduser $su_usr
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu	
+}
+
+
+
+######################################################################
+# Change User Password.
+#
+# This exists purely due to nsm_server_user-passwd doesn't properly
+# sanitize user input and thus executes any special characters
+# entered. This is a security issue, but also makes it impossible
+# to set a "good" password. Also lists current users to ease the
+# process.
+######################################################################
+function su_changePassword {
+	su_usr=
+
+	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
+
+	while [[ "$su_usr" == "" ]]; do
+		printf "\n\nPlease enter the username below (must be alpha-numeric).\n"
+		echo -n "Username: "; read su_usr
+	done
+
+	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -changepasswd $su_usr
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu	
+}
+
+
+
+######################################################################
+# Disable User.
+#
+# Lists current users to ease the process.
+######################################################################
+function su_disableUser {
+	su_usr=
+
+	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
+
+	while [[ "$su_usr" == "" ]]; do
+		printf "\n\nPlease enter the username below (must be alpha-numeric).\n"
+		echo -n "Username: "; read su_usr
+	done
+
+	/usr/bin/sguild -disableuser $su_usr
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu	
+}
+
+
+
+######################################################################
+# Backup /etc/nsm locally.
+#
+# This creates a backup of /etc/nsm in the /var/backups
+# directory.
+######################################################################
+function su_etcBackup {
+	backup=/var/backups/etc_backup_`date +%m%d%Y_%H%M%S`.tar.gz
+	echo "Running backup of /etc/nsm..."
+	tar -czvf $backup /etc/nsm | tee /var/log/nsm/etc_backup.log
+	printf "\n\nBackup complete. Available at: $backup\n"
+	echo "Log available at /var/log/nsm/etc_backup.log"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Backup /etc/nsm to network.
+#
+# This copies your local backups of /etc/nsm to the designated
+# network location.
+######################################################################
+function su_etcBackupNet {
+	junk=
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
+		echo "Backup settings not configured in script."
+		echo "--- Press [Enter] to continue ---"; read -s
+	else
+		echo "This will copy your local backups of /etc/nsm to $su_backupHost."
+		echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+
+		if [[ "$junk" == [yY] ]]; then
+			rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Backup dailylogs to network.
+#
+# This performs an rsync of your /nsm/sensor_data/<int>/dailylogs
+# to your designated network location.
+######################################################################
+function su_dailyBackupNet {
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
+		echo "Backup settings not configured in script."
+		echo "--- Press [Enter] to continue ---"; read -s
+	else
+		find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
+		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
+		echo "--- Press [Enter] to continue ---"; read -s
+	fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Create desktop shortcut.
+#
+# This will create a clickable shortcut.
+######################################################################
+function su_createDesktop {
+	whoami=${SUDO_USER:=$USER}
+	if [[ "$whoami" == "root" ]]; then
+		if ! [[ -d /root/Desktop ]]; then mkdir /root/Desktop; fi
+		desktopPath=/root/Desktop
+	else
+		if ! [[ -d /home/$whoami/Desktop ]]; then mkdir /home/$whoami/Desktop; fi
+		desktopPath=/home/$whoami/Desktop
+	fi
+	echo "This will create a desktop shortcut at the following location."
+	echo -n "[$desktopPath]: "; read junk; desktopPath="${junk:=$desktopPath}"
+  
+printf "[Desktop Entry]
+Version=$su_version
+Exec=`readlink -f $0`
+Name=Utilities
+GenericName=Utilities
+Encoding=UTF-8
+Terminal=true
+Type=Application
+Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utilities.desktop
+
+	if ! [[ "$whoami" == "root" ]]; then chown $whoami $desktopPath/securityonion-utilities.desktop; fi
+	chmod 755 $desktopPath/securityonion-utilities.desktop
+	echo "Shortcut created at: $desktopPath/securityonion-utilities.desktop"
+	echo "--- Press [Enter] to continue ---"; read -s
+  
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Main Menu
+#
+# These are all the options (fancytext stripped)
+#
+# === Tools
+#  1. SecurityOnion Status (sostat)
+#  2. Update Rules
+#  3. Replicate Snort
+#  4. Install New Signatures
+#  5. Restart Sensors
+#  6. Clear Backlogged Events
+#
+# === Modify Configs
+#  7. snort.conf
+#  8. enablesid.conf
+#  9. modifysid.conf
+# 10. disablesid.conf
+# 11. local.rules
+#
+# === Backups
+# 12. backup /etc/nsm (local)
+# 13. backup /etc/nsm (network)
+# 14. backup dailylogs (network)
+#
+# === User Management
+# 15. List Users
+# 16. Add User
+# 17. Change User Password
+# 18. Disable User
+#
+# === Misc
+# 19. Create Desktop Shortcut
+#  0. Quit
+######################################################################
+function su_mainMenu {
+	clear
+
+	while [[ 2 -gt 1 ]]; do
+printf "Security Onion Utilities (ver. $su_version)
+
+=== Tools				=== Backups
+ [${bu}1${nrml}] SecurityOnion ${bu}S${nrml}tatus (sostat) 	[${bu}12${nrml}] Backup /etc/nsm (local)
+ [${bu}2${nrml}] Rule ${bu}U${nrml}pdate 			[${bu}13${nrml}] Backup /etc/nsm (network)
+ [${bu}3${nrml}] Snort ${bu}R${nrml}eplicate 			[${bu}14${nrml}] Backup dailylogs (network)
+ [${bu}4${nrml}] ${bu}I${nrml}nstall New Signatures
+ [${bu}5${nrml}] Sensor Restart 			=== User Management
+ [${bu}6${nrml}] Clear Backlogged Events 		[${bu}15${nrml}] List Users
+ 					[${bu}16${nrml}] Add User
+=== Modify Configs 			[${bu}17${nrml}] Change User Password
+ [${bu}7${nrml}] snort.conf 			[${bu}18${nrml}] Disable User
+ [${bu}8${nrml}] enablesid.conf
+ [${bu}9${nrml}] modifysid.conf 			=== Misc
+[${bu}10${nrml}] disablesid.conf 			[${bu}19${nrml}] Create Desktop Shortcut
+[${bu}11${nrml}] local.rules 			 [${bu}0${nrml}] Quit\n\n"
+
+		echo -n "Option: "; read junk
+
+		if [[ "$junk" == 1 ]] || [[ "$junk" == [sS] ]]; then
+			clear
+			su_soStat
+
+		elif [[ "$junk" == 2 ]] || [[ "$junk" == [uU] ]]; then
+			clear
+			su_ruleUpdate
+
+		elif [[ "$junk" == 3 ]] || [[ "$junk" == [rR] ]]; then
+			clear
+			su_snortReplicate
+      
+		elif [[ "$junk" == 4 ]] || [[ "$junk" == [iI] ]]; then
+			clear
+			su_signatureUpdate
+
+		elif [[ "$junk" == 5 ]]; then
+			clear
+			su_sensorRestart
+
+		elif [[ "$junk" == 6 ]]; then
+			clear
+			su_clearBacklog
+
+		elif [[ "$junk" == 7 ]]; then
+			clear
+			su_editSnort
+
+		elif [[ "$junk" == 8 ]]; then
+			clear
+			su_editEnSID
+
+		elif [[ "$junk" == 9 ]]; then
+			clear
+			su_editModSID
+
+		elif [[ "$junk" == 10 ]]; then
+			clear
+			su_editDisSID
+
+		elif [[ "$junk" == 11 ]]; then
+			clear
+			su_editlocalRules
+
+		elif [[ "$junk" == 12 ]]; then
+			clear
+			su_etcBackup
+
+		elif [[ "$junk" == 13 ]]; then
+			clear
+			su_etcBackupNet
+
+		elif [[ "$junk" == 14 ]]; then
+			clear
+			su_dailyBackupNet
+
+		elif [[ "$junk" == 15 ]]; then
+			clear
+			su_listUsers
+
+		elif [[ "$junk" == 16 ]]; then
+			clear
+			su_createUser
+
+		elif [[ "$junk" == 17 ]]; then
+			clear
+			su_changePassword
+
+		elif [[ "$junk" == 18 ]]; then
+			clear
+			su_disableUser
+      
+		elif [[ "$junk" == 19 ]]; then
+			clear
+			su_createDesktop
+
+		elif [[ "$junk" == 0 ]] || [[ "$junk" == [qQ] ]]; then
+			clear
+			exit
+
+		else
+			clear
+		fi
+	done
+}
+
+
+
+######################################################################
+# Bootstrap main menu during script initialization.
+######################################################################
+su_mainMenu
