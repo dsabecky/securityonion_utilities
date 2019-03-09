@@ -33,7 +33,6 @@ su_backupArgs=
 ######################################################################
 
 su_version=6
-
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
