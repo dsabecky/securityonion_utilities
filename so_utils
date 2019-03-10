@@ -105,10 +105,9 @@ function su_ruleUpdate {
 ######################################################################
 function su_signatureUpdate {
 	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"=" | tr '[:upper:]' '[:lower:]'`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
-
-	local_tuning=`cat /etc/nsm/securityonion.conf | grep "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"=" | tr '[:upper:]' '[:lower:]'`
 
 	if ! [[ "$local_tuning" == "yes" ]]; then
 		junk=
