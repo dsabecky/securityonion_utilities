@@ -32,7 +32,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=6 
+su_version=7
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -72,7 +72,8 @@ function su_soStat {
 ######################################################################
 # Rule Update.
 #
-# This basically runs rule-update.
+# This runs rule-update, and also logs differential changes to the
+# downloaded.rules file for review.
 ######################################################################
 function su_ruleUpdate {
 	junk=
@@ -99,12 +100,24 @@ function su_ruleUpdate {
 #
 # Parses pulledpork.conf for your temp directory and what signatures
 # you have enabled, since they are the only ones that it will install,
-# #searches /media (by default), and copies them. 
+# #searches /media (by default), and copies them. Also verifies that
+# LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
 	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"=" | tr '[:upper:]' '[:lower:]'`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
+
+	if ! [[ "$local_tuning" == "yes" ]]; then
+		junk=
+		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
+		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
+		if [[ "$junk" == [yY] ]]; then
+			sed -i "`cat /etc/nsm/securityonion.conf | grep -n 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=YES/" /etc/nsm/securityonion.conf
+			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
+		fi
+	fi
 
 	cat /etc/nsm/pulledpork/pulledpork.conf | grep "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
@@ -316,6 +329,92 @@ function su_editlocalRules {
 
 
 ######################################################################
+# Backup /etc/nsm locally.
+#
+# This creates a backup of /etc/nsm in the /var/backups
+# directory.
+######################################################################
+function su_etcBackup {
+	backup=/var/backups/etc_backup_`date +%m%d%Y_%H%M%S`.tar.gz
+	echo "Running backup of /etc/nsm..."
+	tar -czvf $backup /etc/nsm | tee /var/log/nsm/etc_backup.log
+	printf "\n\nBackup complete. Available at: $backup\n"
+	echo "Log available at /var/log/nsm/etc_backup.log"
+	echo "--- Press [Enter] to continue ---"; read -s
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Backup /etc/nsm to network.
+#
+# This copies your local backups of /etc/nsm to the designated
+# network location.
+######################################################################
+function su_etcBackupNet {
+	junk=
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
+		echo "Backup settings not configured in script."
+		echo "--- Press [Enter] to continue ---"; read -s
+	else
+		echo "This will copy your local backups of /etc/nsm to $su_backupHost."
+		echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+
+		if [[ "$junk" == [yY] ]]; then
+			rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Backup dailylogs to network.
+#
+# This performs an rsync of your /nsm/sensor_data/<int>/dailylogs
+# to your designated network location.
+######################################################################
+function su_dailyBackupNet {
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
+		echo "Backup settings not configured in script."
+		echo "--- Press [Enter] to continue ---"; read -s
+	else
+		find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
+		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
+		echo "--- Press [Enter] to continue ---"; read -s
+	fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
+# Backup brologs to network.
+#
+# This performs an rsync of your /nsm/bro/logs to your designated
+# network location.
+######################################################################
+function su_broBackupNet {
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
+		echo "Backup settings not configured in script."
+		echo "--- Press [Enter] to continue ---"; read -s
+	else
+		rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
+		echo "--- Press [Enter] to continue ---"; read -s
+	fi
+
+	su_mainMenu
+}
+
+
+
+######################################################################
 # List Users
 #
 # This gives a list of current users.
@@ -405,72 +504,6 @@ function su_disableUser {
 
 
 ######################################################################
-# Backup /etc/nsm locally.
-#
-# This creates a backup of /etc/nsm in the /var/backups
-# directory.
-######################################################################
-function su_etcBackup {
-	backup=/var/backups/etc_backup_`date +%m%d%Y_%H%M%S`.tar.gz
-	echo "Running backup of /etc/nsm..."
-	tar -czvf $backup /etc/nsm | tee /var/log/nsm/etc_backup.log
-	printf "\n\nBackup complete. Available at: $backup\n"
-	echo "Log available at /var/log/nsm/etc_backup.log"
-	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
-}
-
-
-
-######################################################################
-# Backup /etc/nsm to network.
-#
-# This copies your local backups of /etc/nsm to the designated
-# network location.
-######################################################################
-function su_etcBackupNet {
-	junk=
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		echo "--- Press [Enter] to continue ---"; read -s
-	else
-		echo "This will copy your local backups of /etc/nsm to $su_backupHost."
-		echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
-
-		if [[ "$junk" == [yY] ]]; then
-			rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
-			echo "--- Press [Enter] to continue ---"; read -s
-		fi
-	fi
-
-	su_mainMenu
-}
-
-
-
-######################################################################
-# Backup dailylogs to network.
-#
-# This performs an rsync of your /nsm/sensor_data/<int>/dailylogs
-# to your designated network location.
-######################################################################
-function su_dailyBackupNet {
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		echo "--- Press [Enter] to continue ---"; read -s
-	else
-		find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
-		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
-		echo "--- Press [Enter] to continue ---"; read -s
-	fi
-
-	su_mainMenu
-}
-
-
-
-######################################################################
 # Create desktop shortcut.
 #
 # This will create a clickable shortcut.
@@ -531,15 +564,16 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 # 12. backup /etc/nsm (local)
 # 13. backup /etc/nsm (network)
 # 14. backup dailylogs (network)
+# 15. backup brologs (network)
 #
 # === User Management
-# 15. List Users
-# 16. Add User
-# 17. Change User Password
-# 18. Disable User
+# 16. List Users
+# 17. Add User
+# 18. Change User Password
+# 19. Disable User
 #
 # === Misc
-# 19. Create Desktop Shortcut
+# 20. Create Desktop Shortcut
 #  0. Quit
 ######################################################################
 function su_mainMenu {
@@ -549,19 +583,20 @@ function su_mainMenu {
 printf "Security Onion Utilities (ver. $su_version)
 
 === Tools				=== Backups
- [${bu}1${nrml}] SecurityOnion ${bu}S${nrml}tatus (sostat) 	[${bu}12${nrml}] Backup /etc/nsm (local)
- [${bu}2${nrml}] Rule ${bu}U${nrml}pdate 			[${bu}13${nrml}] Backup /etc/nsm (network)
+ [${bu}1${nrml}] SecurityOnion ${bu}S${nrml}tatus (sostat) 	[${bu}12${nrml}] Backup /etc/nsm  (local)
+ [${bu}2${nrml}] Rule ${bu}U${nrml}pdate 			[${bu}13${nrml}] Backup /etc/nsm  (network)
  [${bu}3${nrml}] Snort ${bu}R${nrml}eplicate 			[${bu}14${nrml}] Backup dailylogs (network)
- [${bu}4${nrml}] ${bu}I${nrml}nstall New Signatures
- [${bu}5${nrml}] Sensor Restart 			=== User Management
- [${bu}6${nrml}] Clear Backlogged Events 		[${bu}15${nrml}] List Users
- 					[${bu}16${nrml}] Add User
-=== Modify Configs 			[${bu}17${nrml}] Change User Password
- [${bu}7${nrml}] snort.conf 			[${bu}18${nrml}] Disable User
- [${bu}8${nrml}] enablesid.conf
- [${bu}9${nrml}] modifysid.conf 			=== Misc
-[${bu}10${nrml}] disablesid.conf 			[${bu}19${nrml}] Create Desktop Shortcut
-[${bu}11${nrml}] local.rules 			 [${bu}0${nrml}] Quit\n\n"
+ [${bu}4${nrml}] ${bu}I${nrml}nstall New Signatures		[${bu}15${nrml}] Backup brologs   (network)
+ [${bu}5${nrml}] Sensor Restart 			
+ [${bu}6${nrml}] Clear Backlogged Events 		=== User Management
+ 					[${bu}16${nrml}] List Users
+=== Modify Configs 			[${bu}17${nrml}] Add User
+ [${bu}7${nrml}] snort.conf 			[${bu}18${nrml}] Change User Password
+ [${bu}8${nrml}] enablesid.conf 			[${bu}19${nrml}] Disable User
+ [${bu}9${nrml}] modifysid.conf 			
+[${bu}10${nrml}] disablesid.conf 			=== Misc
+[${bu}11${nrml}] local.rules 			[${bu}20${nrml}] Create Desktop Shortcut
+					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
 
@@ -623,21 +658,25 @@ printf "Security Onion Utilities (ver. $su_version)
 
 		elif [[ "$junk" == 15 ]]; then
 			clear
-			su_listUsers
+			su_broBackupNet
 
 		elif [[ "$junk" == 16 ]]; then
 			clear
-			su_createUser
+			su_listUsers
 
 		elif [[ "$junk" == 17 ]]; then
 			clear
-			su_changePassword
+			su_createUser
 
 		elif [[ "$junk" == 18 ]]; then
 			clear
+			su_changePassword
+
+		elif [[ "$junk" == 19 ]]; then
+			clear
 			su_disableUser
       
-		elif [[ "$junk" == 19 ]]; then
+		elif [[ "$junk" == 20 ]]; then
 			clear
 			su_createDesktop
 

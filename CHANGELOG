@@ -8,15 +8,25 @@
 #
 ######################################################################
 #
-# Build 6 (3/08/2019)
-#####################
+# Build 7 (03/09/2019)
+######################
+#
+# / Updated remarks for rule update to include differential check.
+# + Network backup of brologs.
+# / Aligned backup options location (eg: local/network).
+# / Reordered backup functions to follow menu.
+# + Checks that LOCAL_NIDS_RULE_TUNING is enabled when installing
+#   signatures and offers to enable if unset.
+#
+# Build 6 (03/08/2019)
+######################
 #
 # / Change log moved out of main script to separate file (CHANGELOG)
 # + Rule Update now also does a differential check of the old and new
 #   downloaded.rules and outputs it to rule_changes.log.
 #
-# Build 5 (2/11/2019)
-#####################
+# Build 5 (02/11/2019)
+######################
 #
 # ! Snort version injection wasn't stripping the periods.
 # / Renumbered menu options that they all have numeric values and
