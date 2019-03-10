@@ -32,7 +32,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=6
+su_version=6 
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
