@@ -100,7 +100,8 @@ function su_ruleUpdate {
 #
 # Parses pulledpork.conf for your temp directory and what signatures
 # you have enabled, since they are the only ones that it will install,
-# #searches /media (by default), and copies them. 
+# #searches /media (by default), and copies them. Also verifies that
+# LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
 	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
