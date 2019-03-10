@@ -12,6 +12,8 @@
 #####################
 #
 # / Change log moved out of main script to separate file (CHANGELOG)
+# + Rule Update now also does a differential check of the old and new
+#   downloaded.rules and outputs it to rule_changes.log.
 #
 # Build 5 (2/11/2019)
 #####################
