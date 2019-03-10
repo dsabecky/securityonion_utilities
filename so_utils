@@ -574,7 +574,7 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}1${nrml}] SecurityOnion ${bu}S${nrml}tatus (sostat) 	[${bu}12${nrml}] Backup /etc/nsm  (local)
  [${bu}2${nrml}] Rule ${bu}U${nrml}pdate 			[${bu}13${nrml}] Backup /etc/nsm  (network)
  [${bu}3${nrml}] Snort ${bu}R${nrml}eplicate 			[${bu}14${nrml}] Backup dailylogs (network)
- [${bu}4${nrml}] ${bu}I${nrml}nstall New signatures		[${bu}15${nrml}] Backup brologs   (network)
+ [${bu}4${nrml}] ${bu}I${nrml}nstall New Signatures		[${bu}15${nrml}] Backup brologs   (network)
  [${bu}5${nrml}] Sensor Restart 			
  [${bu}6${nrml}] Clear Backlogged Events 		=== User Management
  					[${bu}16${nrml}] List Users
