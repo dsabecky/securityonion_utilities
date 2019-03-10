@@ -107,6 +107,18 @@ function su_signatureUpdate {
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"=" | tr '[:upper:]' '[:lower:]'`
+
+	if ! [[ "$local_tuning" == "yes" ]]; then
+		junk=
+		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
+		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
+		if [[ "$junk" == [yY] ]]; then
+			sed -i "`cat /etc/nsm/securityonion.conf | grep -n 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=YES/" /etc/nsm/securityonion.conf
+			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
+		fi
+	fi
+
 	cat /etc/nsm/pulledpork/pulledpork.conf | grep "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
 	echo "The following signatures will be searched for:"
