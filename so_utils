@@ -76,12 +76,20 @@ function su_soStat {
 ######################################################################
 function su_ruleUpdate {
 	junk=
+	if ! [[ -d /tmp/rules ]]; then mkdir /tmp/rules; fi
+	cp /etc/nsm/rules/downloaded.rules /tmp/rules/old.rules
 	rule-update
-	echo -n "Review log? [y/N]: "; read junk
+	cp /etc/nsm/rules/downloaded.rules /tmp/rules/new.rules
 
-	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sid_changes.log 2>/dev/null; fi
+	tail -n +`grep -on "Begin Changes" /var/log/nsm/sid_changes.log | tail -1 | cut -d":" -f1` /var/log/nsm/sid_changes.log > /var/log/nsm/rule_changes.log
+	diff /tmp/rules/old.rules /tmp/rules/new.rules >> /var/log/nsm/rule_changes.log
+	sed -i "s/^</\n\n</g" /var/log/nsm/rule_changes.log
+
+	echo -n "Review changes? [y/N]: "; read junk
+	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/rule_changes.log 2>/dev/null; fi
 
 	su_mainMenu
+
 }
 
 
