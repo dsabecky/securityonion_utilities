@@ -11,7 +11,15 @@
 # Build 8 (xx/xx/xxxx)
 ######################
 #
-# - Removed callbacks to the main menu (this will happen by itself).
+# - Removed ending callbacks to the main menu (this will happen by
+#	itself).
+# ! Clear Backlogged Events (G/S)ID now checks that you're entering
+#   a number vice checking if the input is not empty.
+# / User management functions now use $usr vice $su_usr.
+# + Option to return to main menu added to: signature update, clear
+#   backlogged events, add user, change user password, disable user,
+#   and create desktop shortcut.
+# / Change case sensitivity logic for install new signatures function.
 #
 #
 # Build 7 (03/09/2019)
@@ -41,7 +49,7 @@
 #   options that have character shortcuts are now annotated inline.
 # / sostat moved to the top of the tools section.
 # / Tabbing was space instead of tab in certain functions.
-# - Additional arguments ($@) from sudo. Unneccesary.
+# - Removed additional arguments ($@) from sudo. Unneccesary.
 # + Clearing backlogged events from the system now has its
 #   own option.
 #
