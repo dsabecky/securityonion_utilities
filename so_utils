@@ -63,8 +63,6 @@ function su_soStat {
 	echo -n "Review log? [y/N]: "; read junk
 
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sostat.log 2>/dev/null; fi
-
-	su_mainMenu
 }
 
 
@@ -88,9 +86,6 @@ function su_ruleUpdate {
 
 	echo -n "Review changes? [y/N]: "; read junk
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/rule_changes.log 2>/dev/null; fi
-
-	su_mainMenu
-
 }
 
 
@@ -135,8 +130,6 @@ function su_signatureUpdate {
   
 	printf "\n\nCopy complete. Make sure to run rule update to commit your changes!\n"
 	echo "--- Press [Enter] to continue ---"; read -s
-  
-	su_mainMenu
 }
 
 
@@ -161,7 +154,6 @@ function su_snortReplicate {
 	fi
 
 	echo "--- Press [Enter] to continue ---"; read -s
-	su_mainMenu
 }
 
 
@@ -180,8 +172,6 @@ function su_sensorRestart {
 	echo -n "Review log? [y/N]: "; read junk
 
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sensor_restart.log 2>/dev/null; fi
-
-	su_mainMenu
 }
 
 
@@ -207,8 +197,6 @@ function su_clearBacklog {
 
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e "update event set status=1, last_modified=\"2000-01-01 00:00:00\", last_uid=\"sguil\" where event.status=0 and event.signature_gen like \"$gid\" and event.signature_id like \"$sid\";"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -230,8 +218,6 @@ function su_editSnort {
 	$su_editor /etc/nsm/templates/snort/snort.conf 2>/dev/null
 	echo "Make sure to run snort replicate to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -253,8 +239,6 @@ function su_editEnSID {
 	$su_editor /etc/nsm/pulledpork/enablesid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -276,8 +260,6 @@ function su_editModSID {
 	$su_editor /etc/nsm/pulledpork/modifysid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -299,8 +281,6 @@ function su_editDisSID {
 	$su_editor /etc/nsm/pulledpork/disablesid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -322,8 +302,6 @@ function su_editlocalRules {
 	$su_editor /etc/nsm/rules/local.rules 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -341,8 +319,6 @@ function su_etcBackup {
 	printf "\n\nBackup complete. Available at: $backup\n"
 	echo "Log available at /var/log/nsm/etc_backup.log"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -367,8 +343,6 @@ function su_etcBackupNet {
 			echo "--- Press [Enter] to continue ---"; read -s
 		fi
 	fi
-
-	su_mainMenu
 }
 
 
@@ -388,8 +362,6 @@ function su_dailyBackupNet {
 		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
 		echo "--- Press [Enter] to continue ---"; read -s
 	fi
-
-	su_mainMenu
 }
 
 
@@ -408,8 +380,6 @@ function su_broBackupNet {
 		rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
 		echo "--- Press [Enter] to continue ---"; read -s
 	fi
-
-	su_mainMenu
 }
 
 
@@ -423,8 +393,6 @@ function su_listUsers {
 	printf "List of users:\n\n"
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
 	printf "\n\n--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -447,8 +415,6 @@ function su_createUser {
 
 	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -adduser $su_usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -474,8 +440,6 @@ function su_changePassword {
 
 	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -changepasswd $su_usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -497,8 +461,6 @@ function su_disableUser {
 
 	/usr/bin/sguild -disableuser $su_usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -534,8 +496,6 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 	chmod 755 $desktopPath/securityonion-utilities.desktop
 	echo "Shortcut created at: $desktopPath/securityonion-utilities.desktop"
 	echo "--- Press [Enter] to continue ---"; read -s
-  
-	su_mainMenu
 }
 
 
