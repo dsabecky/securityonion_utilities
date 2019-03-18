@@ -8,6 +8,20 @@
 #
 ######################################################################
 #
+# Build 8 (03/18/2019)
+######################
+#
+# - Removed ending callbacks to the main menu (this will happen by
+#	itself).
+# ! Clear Backlogged Events (G/S)ID now checks that you're entering
+#   a number vice checking if the input is not empty.
+# / User management functions now use $usr vice $su_usr.
+# + Option to return to main menu added to: signature update, clear
+#   backlogged events, add user, change user password, disable user,
+#   and create desktop shortcut.
+# / Change case sensitivity logic for install new signatures function.
+#
+#
 # Build 7 (03/09/2019)
 ######################
 #
@@ -18,12 +32,14 @@
 # + Checks that LOCAL_NIDS_RULE_TUNING is enabled when installing
 #   signatures and offers to enable if unset.
 #
+#
 # Build 6 (03/08/2019)
 ######################
 #
 # / Change log moved out of main script to separate file (CHANGELOG)
 # + Rule Update now also does a differential check of the old and new
 #   downloaded.rules and outputs it to rule_changes.log.
+#
 #
 # Build 5 (02/11/2019)
 ######################
@@ -33,7 +49,7 @@
 #   options that have character shortcuts are now annotated inline.
 # / sostat moved to the top of the tools section.
 # / Tabbing was space instead of tab in certain functions.
-# - Additional arguments ($@) from sudo. Unneccesary.
+# - Removed additional arguments ($@) from sudo. Unneccesary.
 # + Clearing backlogged events from the system now has its
 #   own option.
 #

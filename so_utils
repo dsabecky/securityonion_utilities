@@ -32,7 +32,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=7
+su_version=8
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -63,8 +63,6 @@ function su_soStat {
 	echo -n "Review log? [y/N]: "; read junk
 
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sostat.log 2>/dev/null; fi
-
-	su_mainMenu
 }
 
 
@@ -88,9 +86,6 @@ function su_ruleUpdate {
 
 	echo -n "Review changes? [y/N]: "; read junk
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/rule_changes.log 2>/dev/null; fi
-
-	su_mainMenu
-
 }
 
 
@@ -104,26 +99,29 @@ function su_ruleUpdate {
 # LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
-	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
-	local_tuning=`cat /etc/nsm/securityonion.conf | grep "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"=" | tr '[:upper:]' '[:lower:]'`
+	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"="`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
-	if ! [[ "$local_tuning" == "yes" ]]; then
+	if ! [[ "$local_tuning" == [yY][eE][sS] ]]; then
 		junk=
 		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
 		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
 		if [[ "$junk" == [yY] ]]; then
-			sed -i "`cat /etc/nsm/securityonion.conf | grep -n 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=YES/" /etc/nsm/securityonion.conf
+			sed -i "`cat /etc/nsm/securityonion.conf | grep -in 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
 			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
 		fi
 	fi
 
-	cat /etc/nsm/pulledpork/pulledpork.conf | grep "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
+	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
 	echo "The following signatures will be searched for:"
 	cat /tmp/pulledpork_signatures
-	echo -n "Directory to search [$searchdir]: "; read junk; searchdir=${junk:=$searchdir}
+	echo ""; echo "Enter the directory you would like to search (Q to cancel)."
+	echo -n "[$searchdir]: "; read junk; searchdir=${junk:=$searchdir}
+
+	if [[ "$junk" == [qQ] ]]; then su_mainMenu; fi
   
 	count=1
 	while [[ $count -le $(wc -l < /tmp/pulledpork_signatures) ]]; do
@@ -135,8 +133,6 @@ function su_signatureUpdate {
   
 	printf "\n\nCopy complete. Make sure to run rule update to commit your changes!\n"
 	echo "--- Press [Enter] to continue ---"; read -s
-  
-	su_mainMenu
 }
 
 
@@ -161,7 +157,6 @@ function su_snortReplicate {
 	fi
 
 	echo "--- Press [Enter] to continue ---"; read -s
-	su_mainMenu
 }
 
 
@@ -180,8 +175,6 @@ function su_sensorRestart {
 	echo -n "Review log? [y/N]: "; read junk
 
 	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/sensor_restart.log 2>/dev/null; fi
-
-	su_mainMenu
 }
 
 
@@ -197,18 +190,13 @@ function su_clearBacklog {
 	gid=
 	sid=
 
-	echo "This will clear (flag) events with the specified signature."
-	echo -n "Enter the Generator ID (GID) [1]: "; read gid; gid=${gid:=1}
-	echo ""
-
-	while [[ "$sid" == "" ]]; do
-		echo -n "Enter the Signature ID (SID): "; read sid
-	done
+	echo "This will clear (flag) events with the specified signature (Q to cancel)."
+	while ! [[ "$gid" =~ ^[0-9]+$ ]] && ! [[ "$gid" == [qQ] ]]; do echo -n "Enter the Generator ID (GID) [1]: "; read gid; gid=${gid:=1}; done
+	if [[ "$gid" == [qQ] ]]; then su_mainMenu; fi
+	while ! [[ "$sid" =~ ^[0-9]+$ ]]; do echo -n "Enter the Signature ID (SID): "; read sid; done
 
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e "update event set status=1, last_modified=\"2000-01-01 00:00:00\", last_uid=\"sguil\" where event.status=0 and event.signature_gen like \"$gid\" and event.signature_id like \"$sid\";"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -230,8 +218,6 @@ function su_editSnort {
 	$su_editor /etc/nsm/templates/snort/snort.conf 2>/dev/null
 	echo "Make sure to run snort replicate to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -253,8 +239,6 @@ function su_editEnSID {
 	$su_editor /etc/nsm/pulledpork/enablesid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -276,8 +260,6 @@ function su_editModSID {
 	$su_editor /etc/nsm/pulledpork/modifysid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -299,8 +281,6 @@ function su_editDisSID {
 	$su_editor /etc/nsm/pulledpork/disablesid.conf 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -322,8 +302,6 @@ function su_editlocalRules {
 	$su_editor /etc/nsm/rules/local.rules 2>/dev/null
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -341,8 +319,6 @@ function su_etcBackup {
 	printf "\n\nBackup complete. Available at: $backup\n"
 	echo "Log available at /var/log/nsm/etc_backup.log"
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu
 }
 
 
@@ -367,8 +343,6 @@ function su_etcBackupNet {
 			echo "--- Press [Enter] to continue ---"; read -s
 		fi
 	fi
-
-	su_mainMenu
 }
 
 
@@ -388,8 +362,6 @@ function su_dailyBackupNet {
 		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
 		echo "--- Press [Enter] to continue ---"; read -s
 	fi
-
-	su_mainMenu
 }
 
 
@@ -408,8 +380,6 @@ function su_broBackupNet {
 		rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
 		echo "--- Press [Enter] to continue ---"; read -s
 	fi
-
-	su_mainMenu
 }
 
 
@@ -423,8 +393,6 @@ function su_listUsers {
 	printf "List of users:\n\n"
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
 	printf "\n\n--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -438,17 +406,15 @@ function su_listUsers {
 # to set a "good" password.
 ######################################################################
 function su_createUser {
-	su_usr=
+	usr=
 
-	while [[ "$su_usr" == "" ]]; do
-		echo "Please enter the username below (must be alpha-numeric)."
-		echo -n "Username: "; read su_usr
-	done
+	echo "Please enter the username (Q to cancel)."
+	echo "NOTE: Username must be alpha-numberic."
+	while [[ -z "$usr" ]]; do echo -n "Username: "; read usr; done
+	if [[ "$usr" == [qQ] ]]; then su_mainMenu; fi
 
-	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -adduser $su_usr
+	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -adduser $usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -463,19 +429,16 @@ function su_createUser {
 # process.
 ######################################################################
 function su_changePassword {
-	su_usr=
+	usr=
 
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
 
-	while [[ "$su_usr" == "" ]]; do
-		printf "\n\nPlease enter the username below (must be alpha-numeric).\n"
-		echo -n "Username: "; read su_usr
-	done
+	echo ""; echo "Please enter the username (Q to cancel)."
+	while [[ -z "$usr" ]]; do echo -n "Username: "; read usr; done
+	if [[ "$usr" == [qQ] ]]; then su_mainMenu; fi
 
-	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -changepasswd $su_usr
+	/usr/bin/sguild -c /etc/nsm/securityonion/sguild.conf -C /etc/nsm/securityonion/certs/ -changepasswd $usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -486,19 +449,16 @@ function su_changePassword {
 # Lists current users to ease the process.
 ######################################################################
 function su_disableUser {
-	su_usr=
+	usr=
 
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e 'select username from user_info where username != "auto" and password != "LOCKED";'
 
-	while [[ "$su_usr" == "" ]]; do
-		printf "\n\nPlease enter the username below (must be alpha-numeric).\n"
-		echo -n "Username: "; read su_usr
-	done
+	echo ""; echo "Please enter the username (Q to cancel)."
+	while [[ -z "$usr" ]]; do echo -n "Username: "; read usr; done
+	if [[ "$usr" == [qQ] ]]; then su_mainMenu; fi
 
-	/usr/bin/sguild -disableuser $su_usr
+	/usr/bin/sguild -disableuser $usr
 	echo "--- Press [Enter] to continue ---"; read -s
-
-	su_mainMenu	
 }
 
 
@@ -517,8 +477,9 @@ function su_createDesktop {
 		if ! [[ -d /home/$whoami/Desktop ]]; then mkdir /home/$whoami/Desktop; fi
 		desktopPath=/home/$whoami/Desktop
 	fi
-	echo "This will create a desktop shortcut at the following location."
+	echo "This will create a desktop shortcut at the following location (Q to cancel)."
 	echo -n "[$desktopPath]: "; read junk; desktopPath="${junk:=$desktopPath}"
+	if [[ "$junk" == [qQ] ]]; then su_mainMenu; fi
   
 printf "[Desktop Entry]
 Version=$su_version
@@ -534,8 +495,6 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 	chmod 755 $desktopPath/securityonion-utilities.desktop
 	echo "Shortcut created at: $desktopPath/securityonion-utilities.desktop"
 	echo "--- Press [Enter] to continue ---"; read -s
-  
-	su_mainMenu
 }
 
 
