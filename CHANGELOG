@@ -8,6 +8,17 @@
 #
 ######################################################################
 #
+# Build 9 (03/23/2019)
+######################
+#
+# ! pulledpork requires LOCAL_NIDS_RULE_TUNING value to be lower case
+#   to read properly.
+# ! Main menu now properly clears when called from suboption.
+# / Main menu options compacted (no user change).
+# + rule_changes.log now appends to previous log, and rolls over once
+#   larger than 50M.
+# + Config backups now offer to prune after defined amount of days.
+#
 # Build 8 (03/18/2019)
 ######################
 #
