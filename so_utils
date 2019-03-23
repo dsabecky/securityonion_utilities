@@ -613,7 +613,7 @@ function su_mainMenu {
 printf "Security Onion Utilities (ver. $su_version)
 
 === Tools				=== Backups
- [${bu}1${nrml}] SecurityOnion ${bu}S${nrml}tatus (sostat) 	[${bu}12${nrml}] Backup /etc/nsm  (local)
+ [${bu}1${nrml}] SecurityOnion Status (sostat) 	[${bu}12${nrml}] Backup /etc/nsm  (local)
  [${bu}2${nrml}] Rule ${bu}U${nrml}pdate 			[${bu}13${nrml}] Backup /etc/nsm  (network)
  [${bu}3${nrml}] Snort ${bu}R${nrml}eplicate 			[${bu}14${nrml}] Backup dailylogs (network)
  [${bu}4${nrml}] ${bu}I${nrml}nstall New Signatures		[${bu}15${nrml}] Backup brologs   (network)
@@ -621,16 +621,16 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}6${nrml}] Clear Backlogged Events 		=== User Management
  					[${bu}16${nrml}] List Users
 === Modify Configs 			[${bu}17${nrml}] Add User
- [${bu}7${nrml}] snort.conf 			[${bu}18${nrml}] Change User Password
- [${bu}8${nrml}] enablesid.conf 			[${bu}19${nrml}] Disable User
- [${bu}9${nrml}] modifysid.conf 			
-[${bu}10${nrml}] disablesid.conf 			=== Misc
-[${bu}11${nrml}] local.rules 			[${bu}20${nrml}] Create Desktop Shortcut
+ [${bu}7${nrml}] ${bu}s${nrml}nort.conf 			[${bu}18${nrml}] Change User Password
+ [${bu}8${nrml}] ${bu}e${nrml}nablesid.conf 			[${bu}19${nrml}] Disable User
+ [${bu}9${nrml}] ${bu}m${nrml}odifysid.conf 			
+[${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
+[${bu}11${nrml}] ${bu}l${nrml}ocal.rules 			[${bu}20${nrml}] Create Desktop Shortcut
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
 
-		if [[ "$junk" == [1sS] ]]; then
+		if [[ "$junk" == [1] ]]; then
 			clear
 			su_soStat
 
@@ -654,23 +654,23 @@ printf "Security Onion Utilities (ver. $su_version)
 			clear
 			su_clearBacklog
 
-		elif [[ "$junk" == 7 ]]; then
+		elif [[ "$junk" == [7sS] ]]; then
 			clear
 			su_editSnort
 
-		elif [[ "$junk" == 8 ]]; then
+		elif [[ "$junk" == [8eE] ]]; then
 			clear
 			su_editEnSID
 
-		elif [[ "$junk" == 9 ]]; then
+		elif [[ "$junk" == [9mM] ]]; then
 			clear
 			su_editModSID
 
-		elif [[ "$junk" == 10 ]]; then
+		elif [[ "$junk" == 10 || "$junk" == [dD] ]]; then
 			clear
 			su_editDisSID
 
-		elif [[ "$junk" == 11 ]]; then
+		elif [[ "$junk" == 11 || "$junk" == [lL] ]]; then
 			clear
 			su_editlocalRules
 
