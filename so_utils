@@ -104,7 +104,7 @@ function su_signatureUpdate {
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
-	if ! [[ "$local_tuning" == [yY][eE][sS] ]]; then
+	if ! [[ "$local_tuning" == "yes" ]]; then
 		junk=
 		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
 		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}

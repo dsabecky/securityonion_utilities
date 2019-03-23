@@ -8,6 +8,12 @@
 #
 ######################################################################
 #
+# Build 9 (xx/xx/xxxx)
+######################
+#
+# ! pulledpork requires LOCAL_NIDS_RULE_TUNING value to be lower case
+#   to read properly.
+#
 # Build 8 (03/18/2019)
 ######################
 #
