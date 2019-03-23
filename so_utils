@@ -3,6 +3,7 @@
 # These are all of your configurations for the script.
 #
 # su_editor     - the text editor you want to invoke.
+# retention		- how long to keep backups. (will prompt before delete)
 #
 # NOTE: The "backup" settings are only required if you use the network
 #       backup functions!
@@ -15,6 +16,7 @@
 ######################################################################
 
 su_editor=nano
+retention=30
 
 su_backupUser=
 su_backupHost=
@@ -40,6 +42,10 @@ nrml=$(tput sgr0)
 
 rc_log=/var/log/nsm/rule_changes.log
 sc_log=/var/log/nsm/sid_changes.log
+
+sn_bk=/var/backups/snort
+pp_bk=/var/backups/pulledpork
+rul_bk=/var/backups/rules
 
 
 
@@ -215,13 +221,25 @@ function su_clearBacklog {
 # directory.
 ######################################################################
 function su_editSnort {
-	backup=/var/backups/snort/snort.conf.`date +%m%d%Y_%H%M%S`
+	backup=$sn_bk/snort.conf.`date +%m%d%Y_%H%M%S`
 
-	if ! [[ -d /var/backups/snort ]]; then mkdir /var/backups/snort; fi
+	if ! [[ -d $sn_bk ]]; then mkdir $sn_bk; fi
 
 	cp /etc/nsm/templates/snort/snort.conf $backup
 	printf "Backup created at $backup\n"
 	$su_editor /etc/nsm/templates/snort/snort.conf 2>/dev/null
+
+	count=`find $sn_bk -name "snort.conf.*" -mtime +$retention | wc -l`
+	if [[ $count -gt 0 ]]; then
+		echo "You currently have $count backups older than $retention days."
+		echo -n "Prune? [y/N]: "; read junk
+
+		if [[ "$junk" == [yY] ]]; then
+			find $sn_bk -name "snort.conf.*" -mtime +$retention -exec rm -f {} \;
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
 	echo "Make sure to run snort replicate to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
 }
@@ -236,13 +254,25 @@ function su_editSnort {
 # directory.
 ######################################################################
 function su_editEnSID {
-	backup=/var/backups/pulledpork/enablesid.conf.`date +%m%d%Y_%H%M%S`
+	backup=$pp_bk/enablesid.conf.`date +%m%d%Y_%H%M%S`
 
-	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+	if ! [[ -d $pp_bk ]]; then mkdir $pp_bk; fi
 
 	cp /etc/nsm/pulledpork/enablesid.conf $backup
 	printf "Backup created at $backup\n"
 	$su_editor /etc/nsm/pulledpork/enablesid.conf 2>/dev/null
+
+	count=`find $pp_bk -name "enablesid.conf.*" -mtime +$retention | wc -l`
+	if [[ $count -gt 0 ]]; then
+		echo "You currently have $count backups older than $retention days."
+		echo -n "Prune? [y/N]: "; read junk
+
+		if [[ "$junk" == [yY] ]]; then
+			find $pp_bk -name "enablesid.conf.*" -mtime +$retention -exec rm -f {} \;
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
 }
@@ -257,13 +287,25 @@ function su_editEnSID {
 # directory.
 ######################################################################
 function su_editModSID {
-	backup=/var/backups/pulledpork/modifysid.conf.`date +%m%d%Y_%H%M%S`
+	backup=$pp_bk/modifysid.conf.`date +%m%d%Y_%H%M%S`
 
-	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+	if ! [[ -d $pp_bk ]]; then mkdir $pp_bk; fi
 
 	cp /etc/nsm/pulledpork/modifysid.conf $backup
 	printf "Backup created at $backup\n"
 	$su_editor /etc/nsm/pulledpork/modifysid.conf 2>/dev/null
+
+	count=`find $pp_bk -name "modifysid.conf.*" -mtime +$retention | wc -l`
+	if [[ $count -gt 0 ]]; then
+		echo "You currently have $count backups older than $retention days."
+		echo -n "Prune? [y/N]: "; read junk
+
+		if [[ "$junk" == [yY] ]]; then
+			find $pp_bk -name "modifysid.conf.*" -mtime +$retention -exec rm -f {} \;
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
 }
@@ -278,13 +320,25 @@ function su_editModSID {
 # directory.
 ######################################################################
 function su_editDisSID {
-	backup=/var/backups/pulledpork/disablesid.conf.`date +%m%d%Y_%H%M%S`
+	backup=$pp_bk/disablesid.conf.`date +%m%d%Y_%H%M%S`
 
-	if ! [[ -d /var/backups/pulledpork ]]; then mkdir /var/backups/pulledpork; fi
+	if ! [[ -d $pp_bk ]]; then mkdir $pp_bk; fi
 
 	cp /etc/nsm/pulledpork/disablesid.conf $backup
 	printf "Backup created at $backup\n"
 	$su_editor /etc/nsm/pulledpork/disablesid.conf 2>/dev/null
+
+	count=`find $pp_bk -name "disablesid.conf.*" -mtime +$retention | wc -l`
+	if [[ $count -gt 0 ]]; then
+		echo "You currently have $count backups older than $retention days."
+		echo -n "Prune? [y/N]: "; read junk
+
+		if [[ "$junk" == [yY] ]]; then
+			find $pp_bk -name "disablesid.conf.*" -mtime +$retention -exec rm -f {} \;
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
 }
@@ -299,13 +353,25 @@ function su_editDisSID {
 # directory.
 ######################################################################
 function su_editlocalRules {
-	backup=/var/backups/rules/local.rules.`date +%m%d%Y_%H%M%S`
+	backup=$rul_bk/local.rules.`date +%m%d%Y_%H%M%S`
 
-	if ! [[ -d /var/backups/rules ]]; then mkdir /var/backups/rules; fi
+	if ! [[ -d $rul_bk ]]; then mkdir $rul_bk; fi
 
 	cp /etc/nsm/rules/local.rules $backup
 	printf "Backup created at $backup\n"
 	$su_editor /etc/nsm/rules/local.rules 2>/dev/null
+
+	count=`find $rul_bk -name "local.rules.*" -mtime +$retention | wc -l`
+	if [[ $count -gt 0 ]]; then
+		echo "You currently have $count backups older than $retention days."
+		echo -n "Prune? [y/N]: "; read junk
+
+		if [[ "$junk" == [yY] ]]; then
+			find $rul_bk -name "local.rules.*" -mtime +$retention -exec rm -f {} \;
+			echo "--- Press [Enter] to continue ---"; read -s
+		fi
+	fi
+
 	echo "Make sure to run rule update to commit your changes!"
 	echo "--- Press [Enter] to continue ---"; read -s
 }

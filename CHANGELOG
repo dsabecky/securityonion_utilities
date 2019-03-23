@@ -15,8 +15,9 @@
 #   to read properly.
 # ! Main menu now properly clears when called from suboption.
 # / Main menu options compacted (no user change).
-# / rule_changes.log now appends to previous log, and rolls over once
+# + rule_changes.log now appends to previous log, and rolls over once
 #   larger than 50M.
+# + Config backups now offer to prune after defined amount of days.
 #
 # Build 8 (03/18/2019)
 ######################
