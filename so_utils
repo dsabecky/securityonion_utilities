@@ -536,9 +536,8 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 #  0. Quit
 ######################################################################
 function su_mainMenu {
-	clear
-
 	while [[ 2 -gt 1 ]]; do
+		clear
 printf "Security Onion Utilities (ver. $su_version)
 
 === Tools				=== Backups

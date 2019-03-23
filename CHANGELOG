@@ -13,6 +13,7 @@
 #
 # ! pulledpork requires LOCAL_NIDS_RULE_TUNING value to be lower case
 #   to read properly.
+# ! Main menu now properly clears when called from suboption.
 #
 # Build 8 (03/18/2019)
 ######################
