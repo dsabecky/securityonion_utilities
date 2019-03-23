@@ -558,19 +558,19 @@ printf "Security Onion Utilities (ver. $su_version)
 
 		echo -n "Option: "; read junk
 
-		if [[ "$junk" == 1 ]] || [[ "$junk" == [sS] ]]; then
+		if [[ "$junk" == [1sS] ]]; then
 			clear
 			su_soStat
 
-		elif [[ "$junk" == 2 ]] || [[ "$junk" == [uU] ]]; then
+		elif [[ "$junk" == [2uU] ]]; then
 			clear
 			su_ruleUpdate
 
-		elif [[ "$junk" == 3 ]] || [[ "$junk" == [rR] ]]; then
+		elif [[ "$junk" == [3rR] ]]; then
 			clear
 			su_snortReplicate
       
-		elif [[ "$junk" == 4 ]] || [[ "$junk" == [iI] ]]; then
+		elif [[ "$junk" == [4iI] ]]; then
 			clear
 			su_signatureUpdate
 
@@ -638,7 +638,7 @@ printf "Security Onion Utilities (ver. $su_version)
 			clear
 			su_createDesktop
 
-		elif [[ "$junk" == 0 ]] || [[ "$junk" == [qQ] ]]; then
+		elif [[ "$junk" == [0qQ] ]]; then
 			clear
 			exit
 
