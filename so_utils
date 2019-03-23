@@ -38,6 +38,9 @@ uline=$(tput smul)
 bu=${bold}${uline}
 nrml=$(tput sgr0)
 
+rc_log=/var/log/nsm/rule_changes.log
+sc_log=/var/log/nsm/sid_changes.log
+
 
 
 ######################################################################
@@ -70,8 +73,8 @@ function su_soStat {
 ######################################################################
 # Rule Update.
 #
-# This runs rule-update, and also logs differential changes to the
-# downloaded.rules file for review.
+# This runs rule-update, logs differential changes to the
+# downloaded.rules file for review, and archives logs over 50M.
 ######################################################################
 function su_ruleUpdate {
 	junk=
@@ -80,12 +83,15 @@ function su_ruleUpdate {
 	rule-update
 	cp /etc/nsm/rules/downloaded.rules /tmp/rules/new.rules
 
-	tail -n +`grep -on "Begin Changes" /var/log/nsm/sid_changes.log | tail -1 | cut -d":" -f1` /var/log/nsm/sid_changes.log > /var/log/nsm/rule_changes.log
-	diff /tmp/rules/old.rules /tmp/rules/new.rules >> /var/log/nsm/rule_changes.log
-	sed -i "s/^</\n\n</g" /var/log/nsm/rule_changes.log
+	if ! [ -f "$rc_log" ]; then touch $rc_log; fi
+	size=`du $rc_log | grep -Po "\d*"`
+	if [[ $size -gt 50000 ]]; then count=`ls ${rc_log}.*.tar.gz 2>/dev/null | wc -l`; cd /var/log/nsm; tar -cvf rule_changes.log.$(($count+1)).tar.gz --remove-files rule_changes.log; fi
+
+	tail -n +`grep -on "Begin Changes" $sc_log | tail -1 | cut -d":" -f1` $sc_log >> $rc_log
+	diff /tmp/rules/old.rules /tmp/rules/new.rules >> $rc_log
 
 	echo -n "Review changes? [y/N]: "; read junk
-	if [[ "$junk" == [yY] ]]; then $su_editor /var/log/nsm/rule_changes.log 2>/dev/null; fi
+	if [[ "$junk" == [yY] ]]; then $su_editor $rc_log 2>/dev/null; fi
 }
 
 
