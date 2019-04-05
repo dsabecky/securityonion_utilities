@@ -8,6 +8,14 @@
 #
 ######################################################################
 #
+# Build 10 (xx/xx/xxxx)
+#######################
+#
+# - local.rules from main menu.
+# + Submenu option to edit all (except downloaded.rules) enabled rule
+#   files, also providing pre-edit backups and retention pruning.
+#
+#
 # Build 9 (03/23/2019)
 ######################
 #
