@@ -387,8 +387,9 @@ function su_ruleMenu {
 			if ! [[ -d $rul_bk ]]; then mkdir $rul_bk; fi
 
 			cp $filePath $backup
+			clear
 			printf "Backup created at $backup\n"
-			$su_editor `echo "$rules" | head -$junk | tail -1`
+			$su_editor $filePath
 
 			count=`find $rul_bk -name "$file.*" -mtime +$retention | wc -l`
 			if [[ $count -gt 0 ]]; then
@@ -400,6 +401,9 @@ function su_ruleMenu {
 					echo "--- Press [Enter] to continue ---"; read -s
 				fi
 			fi
+
+			echo "Make sure to restart your sensors to commit changes!"
+			echo "--- Press [Enter] to continue ---"; read -s
 		fi
 	done
 }
@@ -653,7 +657,7 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}8${nrml}] ${bu}e${nrml}nablesid.conf 			[${bu}19${nrml}] Disable User
  [${bu}9${nrml}] ${bu}m${nrml}odifysid.conf 			
 [${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
-[${bu}11${nrml}] Edit Rules			[${bu}20${nrml}] Create Desktop Shortcut
+[${bu}11${nrml}] Edit Rules				[${bu}20${nrml}] Create Desktop Shortcut
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
