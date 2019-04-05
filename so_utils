@@ -374,9 +374,7 @@ function su_ruleMenu {
 		if [[ "$junk" == [0qQ] ]]; then
 			break
 
-		elif ! [[ "$junk" =~ ^[0-9]+$ ]] || [[ "$junk" -gt "$total" ]]; then
-			echo "Invalid option!"
-			echo "--- Press [Enter] to continue ---"; read -s
+		elif ! [[ "$junk" =~ ^[0-9]+$ ]] || [[ "$junk" -gt "$total" ]]; then echo ""
 
 		elif [[ "$junk" -le "$total" ]]; then
 
