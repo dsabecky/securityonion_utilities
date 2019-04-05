@@ -8,12 +8,17 @@
 #
 ######################################################################
 #
-# Build 10 (xx/xx/xxxx)
+# Build 10 (04/04/2019)
 #######################
 #
 # - local.rules from main menu.
 # + Submenu option to edit all (except downloaded.rules) enabled rule
 #   files, also providing pre-edit backups and retention pruning.
+# / Removed second grep from Signature Tuning variables, replaced
+#   with ^ in first grep.
+# ! Choosing 'no' from Install Signatures warning will return user
+#   to main menu as pulledpork will not poll local files unless
+#   local tuning is enabled.
 #
 #
 # Build 9 (03/23/2019)

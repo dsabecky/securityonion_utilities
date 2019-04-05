@@ -34,7 +34,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=9
+su_version=10
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -111,8 +111,8 @@ function su_ruleUpdate {
 # LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
-	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
-	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"="`
+	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^temp_path=" | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "^LOCAL_NIDS_RULE_TUNING=" | cut -f2 -d"="`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
@@ -121,12 +121,15 @@ function su_signatureUpdate {
 		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
 		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
 		if [[ "$junk" == [yY] ]]; then
-			sed -i "`cat /etc/nsm/securityonion.conf | grep -in 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
+			sed -i "`cat /etc/nsm/securityonion.conf | grep -in '^LOCAL_NIDS_RULE_TUNING=' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
 			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
+
+		else
+			su_mainMenu
 		fi
 	fi
 
-	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
+	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^rule_url=" | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
 	echo "The following signatures will be searched for:"
 	cat /tmp/pulledpork_signatures
@@ -619,7 +622,7 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 #  8. enablesid.conf
 #  9. modifysid.conf
 # 10. disablesid.conf
-# 11. local.rules
+# 11. Edit Rules
 #
 # === Backups
 # 12. backup /etc/nsm (local)
