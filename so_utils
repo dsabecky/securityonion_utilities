@@ -34,7 +34,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=9
+su_version=10
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -111,8 +111,8 @@ function su_ruleUpdate {
 # LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
-	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "temp_path=" | grep -v '^#' | cut -f2 -d'=' | cut -f1 -d'#'`
-	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "LOCAL_NIDS_RULE_TUNING" | grep -v "^#" | cut -f2 -d"="`
+	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^temp_path=" | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "^LOCAL_NIDS_RULE_TUNING=" | cut -f2 -d"="`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
@@ -121,12 +121,15 @@ function su_signatureUpdate {
 		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
 		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
 		if [[ "$junk" == [yY] ]]; then
-			sed -i "`cat /etc/nsm/securityonion.conf | grep -in 'LOCAL_NIDS_RULE_TUNING' | grep -v '#' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
+			sed -i "`cat /etc/nsm/securityonion.conf | grep -in '^LOCAL_NIDS_RULE_TUNING=' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
 			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
+
+		else
+			su_mainMenu
 		fi
 	fi
 
-	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "rule_url=" | grep -v '^#' | cut -f2 -d'|' > /tmp/pulledpork_signatures
+	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^rule_url=" | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
 	echo "The following signatures will be searched for:"
 	cat /tmp/pulledpork_signatures
@@ -346,34 +349,64 @@ function su_editDisSID {
 
 
 ######################################################################
-# Modify Snort local.rules
+# Edit Rules
 #
-# Opens local.rules in a text editor, and creates a backup
-# BEFORE you make any changes into the /var/backups/rules
-# directory.
+# Lists rules enabled via snort.conf for editing. Provides backup
+# and pruning features as well. Backups are stored in the following
+# location: /var/backups/rules.
 ######################################################################
-function su_editlocalRules {
-	backup=$rul_bk/local.rules.`date +%m%d%Y_%H%M%S`
+function su_ruleMenu {
+	RULE_PATH=`cat /etc/nsm/templates/snort/snort.conf | grep "^var RULE_PATH" | cut -f3 -d' '`
+	rules=`cat /etc/nsm/templates/snort/snort.conf | grep "^include .*\.rules" | grep -v "downloaded\.rules" | cut -f2 -d' '`
+	rules="${rules//\$RULE_PATH/$RULE_PATH}"
+	total=`echo "$rules" | wc -l`
 
-	if ! [[ -d $rul_bk ]]; then mkdir $rul_bk; fi
+	while [[ 2 -gt 1 ]]; do
+		clear
+		count=1
 
-	cp /etc/nsm/rules/local.rules $backup
-	printf "Backup created at $backup\n"
-	$su_editor /etc/nsm/rules/local.rules 2>/dev/null
+		printf "Security Onion Utilities (ver. $su_version) >> Edit Rules\n\nThe following are your currently enabled rule files as configured in snort.conf.\n\n"
 
-	count=`find $rul_bk -name "local.rules.*" -mtime +$retention | wc -l`
-	if [[ $count -gt 0 ]]; then
-		echo "You currently have $count backups older than $retention days."
-		echo -n "Prune? [y/N]: "; read junk
+		while [[ $count -le $total ]]; do
+			echo "[$count] `echo \"$rules\" | head -$count | tail -1 | rev | cut -f1 -d'/' | rev`"
+			count=$((count+1))
+		done
+		echo "[Q] Return to main menu"; echo ""
+		echo -n "Option: "; read junk
 
-		if [[ "$junk" == [yY] ]]; then
-			find $rul_bk -name "local.rules.*" -mtime +$retention -exec rm -f {} \;
+		if [[ "$junk" == [0qQ] ]]; then
+			break
+
+		elif ! [[ "$junk" =~ ^[0-9]+$ ]] || [[ "$junk" -gt "$total" ]]; then echo ""
+
+		elif [[ "$junk" -le "$total" ]]; then
+
+			filePath=`echo "$rules" | head -$junk | tail -1`
+			file=`echo "$filePath" | rev | cut -f1 -d'/' | rev`
+			backup=$rul_bk/$file.`date +%m%d%Y_%H%M%S`
+
+			if ! [[ -d $rul_bk ]]; then mkdir $rul_bk; fi
+
+			cp $filePath $backup
+			clear
+			printf "Backup created at $backup\n"
+			$su_editor $filePath
+
+			count=`find $rul_bk -name "$file.*" -mtime +$retention | wc -l`
+			if [[ $count -gt 0 ]]; then
+				echo "You currently have $count backups older than $retention days."
+				echo -n "Prune? [y/N]: "; read junk
+
+				if [[ "$junk" == [yY] ]]; then
+					find $rul_bk -name "$rule.*" -mtime +$retention -exec rm -f {} \;
+					echo "--- Press [Enter] to continue ---"; read -s
+				fi
+			fi
+
+			echo "Make sure to restart your sensors to commit changes!"
 			echo "--- Press [Enter] to continue ---"; read -s
 		fi
-	fi
-
-	echo "Make sure to run rule update to commit your changes!"
-	echo "--- Press [Enter] to continue ---"; read -s
+	done
 }
 
 
@@ -589,7 +622,7 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 #  8. enablesid.conf
 #  9. modifysid.conf
 # 10. disablesid.conf
-# 11. local.rules
+# 11. Edit Rules
 #
 # === Backups
 # 12. backup /etc/nsm (local)
@@ -625,7 +658,7 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}8${nrml}] ${bu}e${nrml}nablesid.conf 			[${bu}19${nrml}] Disable User
  [${bu}9${nrml}] ${bu}m${nrml}odifysid.conf 			
 [${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
-[${bu}11${nrml}] ${bu}l${nrml}ocal.rules 			[${bu}20${nrml}] Create Desktop Shortcut
+[${bu}11${nrml}] Edit Rules				[${bu}20${nrml}] Create Desktop Shortcut
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
@@ -670,9 +703,9 @@ printf "Security Onion Utilities (ver. $su_version)
 			clear
 			su_editDisSID
 
-		elif [[ "$junk" == 11 || "$junk" == [lL] ]]; then
+		elif [[ "$junk" == 11 ]]; then
 			clear
-			su_editlocalRules
+			su_ruleMenu
 
 		elif [[ "$junk" == 12 ]]; then
 			clear
