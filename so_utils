@@ -34,7 +34,7 @@ su_backupArgs=
 # https://github.com/dsabecky/securityonion_utilities/blob/master/CHANGELOG
 ######################################################################
 
-su_version=10
+su_version=11
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -605,6 +605,30 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 
 
 ######################################################################
+# Check Log Size
+#
+# This will give you a summary size of the entered days log files.
+# This includes the pcap (dailylog) and bro logs.
+######################################################################
+function su_checkLogSize {
+	today=`date +%Y-%m-%d`
+	echo "This will display in megabytes the size of the entered days logs."
+	echo -n "Enter date [$today]: "; read $junk
+	junk=${junk:=$today}
+
+	find /nsm/sensor_data -name "$junk" -exec du -shb {} \; | grep -oP "\d*" > /tmp/size
+	find /nsm/bro/logs -name "$junk" -exec du -shb {} \;  | grep -oP "\d*" > /tmp/size
+
+	sum=0
+	for i in `cat /tmp/size`; do
+		sum=$(($sum + $i))
+	done
+	echo "Total log size of $junk: $((($sum / 1024) / 1024))MB"
+	echo "--- Press [Enter] to continue ---"; read -s
+}
+
+
+######################################################################
 # Main Menu
 #
 # These are all the options (fancytext stripped)
@@ -625,10 +649,10 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 # 11. Edit Rules
 #
 # === Backups
-# 12. backup /etc/nsm (local)
-# 13. backup /etc/nsm (network)
-# 14. backup dailylogs (network)
-# 15. backup brologs (network)
+# 12. Backup /etc/nsm (local)
+# 13. Backup /etc/nsm (network)
+# 14. Backup dailylogs (network)
+# 15. Backup brologs (network)
 #
 # === User Management
 # 16. List Users
@@ -638,6 +662,7 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 #
 # === Misc
 # 20. Create Desktop Shortcut
+# 21. Check Log Size (day)
 #  0. Quit
 ######################################################################
 function su_mainMenu {
@@ -659,6 +684,7 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}9${nrml}] ${bu}m${nrml}odifysid.conf 			
 [${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
 [${bu}11${nrml}] Edit Rules				[${bu}20${nrml}] Create Desktop Shortcut
+		  [${bu}21${nrml}] Check Log Size (day)
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
@@ -674,7 +700,7 @@ printf "Security Onion Utilities (ver. $su_version)
 		elif [[ "$junk" == [3rR] ]]; then
 			clear
 			su_snortReplicate
-      
+	  
 		elif [[ "$junk" == [4iI] ]]; then
 			clear
 			su_signatureUpdate
@@ -738,10 +764,14 @@ printf "Security Onion Utilities (ver. $su_version)
 		elif [[ "$junk" == 19 ]]; then
 			clear
 			su_disableUser
-      
+	  
 		elif [[ "$junk" == 20 ]]; then
 			clear
 			su_createDesktop
+
+	elif [[ "$junk" == 21 ]]; then
+	  clear
+	  su_checkLogSize
 
 		elif [[ "$junk" == [0qQ] ]]; then
 			clear
