@@ -2,8 +2,8 @@
 ######################################################################
 # These are all of your configurations for the script.
 #
-# su_editor     - the text editor you want to invoke.
-# retention		- how long to keep backups. (will prompt before delete)
+# su_editor 	- the text editor you want to invoke.
+# retention 	- how long to keep backups. (will prompt before delete)
 #
 # NOTE: The "backup" settings are only required if you use the network
 #       backup functions!
@@ -613,16 +613,17 @@ Icon=/usr/share/pixmaps/security-onion.ico" > $desktopPath/securityonion-utiliti
 function su_checkLogSize {
 	today=`date +%Y-%m-%d`
 	echo "This will display in megabytes the size of the entered days logs."
-	echo -n "Enter date [$today]: "; read $junk
+	echo -n "Enter date [$today]: "; read junk
 	junk=${junk:=$today}
 
 	find /nsm/sensor_data -name "$junk" -exec du -shb {} \; | grep -oP "\d*" > /tmp/size
-	find /nsm/bro/logs -name "$junk" -exec du -shb {} \;  | grep -oP "\d*" > /tmp/size
+	find /nsm/bro/logs -name "$junk" -exec du -shb {} \;  | grep -oP "\d*" >> /tmp/size
 
 	sum=0
 	for i in `cat /tmp/size`; do
 		sum=$(($sum + $i))
 	done
+	rm -f /tmp/size
 	echo "Total log size of $junk: $((($sum / 1024) / 1024))MB"
 	echo "--- Press [Enter] to continue ---"; read -s
 }
@@ -684,7 +685,7 @@ printf "Security Onion Utilities (ver. $su_version)
  [${bu}9${nrml}] ${bu}m${nrml}odifysid.conf 			
 [${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
 [${bu}11${nrml}] Edit Rules				[${bu}20${nrml}] Create Desktop Shortcut
-		  [${bu}21${nrml}] Check Log Size (day)
+					[${bu}21${nrml}] Check Log Size (day)
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
