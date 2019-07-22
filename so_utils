@@ -2,6 +2,10 @@
 ######################################################################
 # These are all of your configurations for the script.
 #
+# !!! NOTE: You can create a new file called so_include and put your
+# !!!       configs in there (beginning of this file to PLEASE DO NOT EDIT)
+# !!!       so you don't have to refill them out every time you update.
+#
 # su_editor 	- the text editor you want to invoke.
 # retention 	- how long to keep backups. (will prompt before delete)
 #
@@ -47,7 +51,7 @@ rc_log=/var/log/nsm/rule_changes.log
 sc_log=/var/log/nsm/sid_changes.log
 bk_dir=/var/backups
 
-function petc { echo "--- Press [Enter] to continue ---"; read -s }
+function petc { echo "--- Press [Enter] to continue ---"; read -s; }
 
 
 
