@@ -8,6 +8,17 @@
 #
 ######################################################################
 #
+# Build 12 (xx/xx/xxxx)
+#######################
+#
+# / Backups variable unified into bk_dir.
+# + Can now optionally save configurations to external file to prevent
+#   overwriting every update (so_include).
+# / Press Enter To Continue is now a function (petc).
+# / Rule Update now compares the old file to the running file vice a
+#   copy of the running file.
+#
+#
 # Build 11 (07/18/2019)
 #######################
 #
