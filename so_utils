@@ -9,8 +9,9 @@
 # su_editor 	- the text editor you want to invoke.
 # retention 	- how long to keep backups. (will prompt before delete)
 #
-# NOTE: The "backup" settings are only required if you use the network
-#       backup functions!
+# !!! NOTE: The "backup" settings are only required if you use the
+# !!!       network backup functions!
+#
 # su_backupUser - your network backup user account
 # su_backupHost - your network backup host address
 # su_backupPath - your network backup file path
@@ -212,7 +213,8 @@ function su_clearBacklog {
 	echo "This will clear (flag) events with the specified signature (Q to cancel)."
 	while ! [[ "$gid" =~ ^[0-9]+$ ]] && ! [[ "$gid" == [qQ] ]]; do echo -n "Enter the Generator ID (GID) [1]: "; read gid; gid=${gid:=1}; done
 	if [[ "$gid" == [qQ] ]]; then su_mainMenu; fi
-	while ! [[ "$sid" =~ ^[0-9]+$ ]]; do echo -n "Enter the Signature ID (SID): "; read sid; done
+	while ! [[ "$sid" =~ ^[0-9]+$ ]] && ! [[ "$sid" == [qQ] ]]; do echo -n "Enter the Signature ID (SID): "; read sid; done
+	if [[ "$sid" == [qQ] ]]; then su_mainMenu; fi
 
 	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e "update event set status=1, last_modified=\"2000-01-01 00:00:00\", last_uid=\"sguil\" where event.status=0 and event.signature_gen like \"$gid\" and event.signature_id like \"$sid\";"
 	petc

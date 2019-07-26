@@ -8,7 +8,7 @@
 #
 ######################################################################
 #
-# Build 12 (xx/xx/xxxx)
+# Build 12 (07/26/2019)
 #######################
 #
 # / Backups variable unified into bk_dir.
@@ -17,6 +17,7 @@
 # / Press Enter To Continue is now a function (petc).
 # / Rule Update now compares the old file to the running file vice a
 #   copy of the running file.
+# / Q works as a response for SID in clear backlogged events now.
 #
 #
 # Build 11 (07/18/2019)
