@@ -42,7 +42,7 @@ su_backupArgs=
 wd=`dirname $(readlink -f $0)`
 if [[ -f $wd/so_include ]]; then . $wd/so_include; fi
 
-su_version=12
+su_version=13
 bold=$(tput bold)
 uline=$(tput smul)
 bu=${bold}${uline}
@@ -52,6 +52,7 @@ rc_log=/var/log/nsm/rule_changes.log
 sc_log=/var/log/nsm/sid_changes.log
 bk_dir=/var/backups
 
+whoami=${SUDO_USER:=$USER}
 function petc { echo "--- Press [Enter] to continue ---"; read -s; }
 
 
@@ -441,17 +442,14 @@ function su_etcBackup {
 ######################################################################
 function su_etcBackupNet {
 	junk=
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		echo "This will copy your local backups of /etc/nsm to $su_backupHost."
-		echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
 
-		if [[ "$junk" == [yY] ]]; then
-			rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
-			petc
-		fi
+	echo "This will copy your local backups of /etc/nsm to $su_backupHost."
+	echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+
+	if [[ "$junk" == [yY] ]]; then
+		rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
+		petc
 	fi
 }
 
@@ -464,14 +462,11 @@ function su_etcBackupNet {
 # to your designated network location.
 ######################################################################
 function su_dailyBackupNet {
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
-		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
-		petc
-	fi
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
+	
+	find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
+	rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
+	petc
 }
 
 
@@ -483,13 +478,10 @@ function su_dailyBackupNet {
 # network location.
 ######################################################################
 function su_broBackupNet {
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
-		petc
-	fi
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
+
+	rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
+	petc
 }
 
 
@@ -577,7 +569,6 @@ function su_disableUser {
 # This will create a clickable shortcut.
 ######################################################################
 function su_createDesktop {
-	whoami=${SUDO_USER:=$USER}
 	if [[ "$whoami" == "root" ]]; then
 		if ! [[ -d /root/Desktop ]]; then mkdir /root/Desktop; fi
 		desktopPath=/root/Desktop
@@ -632,6 +623,28 @@ function su_checkLogSize {
 }
 
 
+
+######################################################################
+# SSH Key Authentication
+#
+# This will generate an ssh key utilizing OpenSSH and syncronize it
+# to your backup host. This is a big convenience as it will let you do
+# your backups without asking to authenticate EVEN IF you change your
+# password. Aren't SSH keys fantastic?
+######################################################################
+function su_createSSHAuth {
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
+
+	echo "This will create an SSH key. Do you want to continue?"
+	echo -n "[y/N]: "; read junk; if ! [[ "$junk" == [yY] ]]; then su_mainMenu; fi
+	printf "\n"; ssh-keygen -N "" -f /root/.ssh/id_rsa <<< y; printf "\n\n"
+
+	echo "Now you'll need to authenticate one last time to complete the password sync."
+	ssh-copy-id -i /root/.ssh/id_rsa $su_backupUser@$su_backupHost; printf "\n\n"
+	petc
+}
+
+
 ######################################################################
 # Main Menu
 #
@@ -667,6 +680,7 @@ function su_checkLogSize {
 # === Misc
 # 20. Create Desktop Shortcut
 # 21. Check Log Size (day)
+# 22. SSH Key Authentication
 #  0. Quit
 ######################################################################
 function su_mainMenu {
@@ -689,6 +703,7 @@ printf "Security Onion Utilities (ver. $su_version)
 [${bu}10${nrml}] ${bu}d${nrml}isablesid.conf 			=== Misc
 [${bu}11${nrml}] Edit Rules				[${bu}20${nrml}] Create Desktop Shortcut
 					[${bu}21${nrml}] Check Log Size (day)
+					[${bu}22${nrml}] SSH Key Authentication
 					 [${bu}0${nrml}] Quit\n\n"
 
 		echo -n "Option: "; read junk
@@ -773,9 +788,13 @@ printf "Security Onion Utilities (ver. $su_version)
 			clear
 			su_createDesktop
 
-	elif [[ "$junk" == 21 ]]; then
-	  clear
-	  su_checkLogSize
+		elif [[ "$junk" == 21 ]]; then
+			clear
+			su_checkLogSize
+
+		elif [[ "$junk" == 22 ]]; then
+			clear
+			su_createSSHAuth
 
 		elif [[ "$junk" == [0qQ] ]]; then
 			clear

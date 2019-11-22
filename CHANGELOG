@@ -8,6 +8,15 @@
 #
 ######################################################################
 #
+# Build 13 (11/21/2019)
+#######################
+#
+# + Option to create SSH key and syncronize to backup server. Requires
+#   backup variables to be filled out.
+# / Moved whoami variable to the globals.
+# / Tidied up the backup variable checks.
+#
+#
 # Build 12 (07/26/2019)
 #######################
 #
