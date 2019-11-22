@@ -442,17 +442,14 @@ function su_etcBackup {
 ######################################################################
 function su_etcBackupNet {
 	junk=
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		echo "This will copy your local backups of /etc/nsm to $su_backupHost."
-		echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
 
-		if [[ "$junk" == [yY] ]]; then
-			rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
-			petc
-		fi
+	echo "This will copy your local backups of /etc/nsm to $su_backupHost."
+	echo -n "Proceed? [Y/n]: "; read junk; junk=${junk:=Y}
+
+	if [[ "$junk" == [yY] ]]; then
+		rsync -aRvP $su_backupArgs /var/backups/etc_backup_*.tar.gz $su_backupUser@$su_backupHost:$su_backupPath
+		petc
 	fi
 }
 
@@ -465,14 +462,11 @@ function su_etcBackupNet {
 # to your designated network location.
 ######################################################################
 function su_dailyBackupNet {
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
-		rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
-		petc
-	fi
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
+	
+	find /nsm/sensor_data/ -name "dailylogs" -type d > /tmp/dailylogs_filelist
+	rsync -arvP $su_backupArgs --files-from=/tmp/dailylogs_filelist / $su_backupUser@$su_backupHost:$su_backupPath
+	petc
 }
 
 
@@ -484,13 +478,10 @@ function su_dailyBackupNet {
 # network location.
 ######################################################################
 function su_broBackupNet {
-	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then
-		echo "Backup settings not configured in script."
-		petc
-	else
-		rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
-		petc
-	fi
+	if ! [[ "$su_backupUser" ]] || ! [[ "$su_backupHost" ]] || ! [[ "$su_backupPath" ]]; then echo "Backup settings not configured!"; petc; su_mainMenu; fi
+
+	rsync -arvP $su_backupArgs /nsm/bro/logs $su_backupUser@$su_backupHost:$su_backupPath
+	petc
 }
 
 
@@ -578,7 +569,6 @@ function su_disableUser {
 # This will create a clickable shortcut.
 ######################################################################
 function su_createDesktop {
-	whoami=${SUDO_USER:=$USER}
 	if [[ "$whoami" == "root" ]]; then
 		if ! [[ -d /root/Desktop ]]; then mkdir /root/Desktop; fi
 		desktopPath=/root/Desktop
