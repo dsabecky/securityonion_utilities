@@ -2,11 +2,7 @@
 A small terminal based, menu driven utility to streamline management of the SecurityOnion system.
 
 # Configuration
-Configuration changes can be made in the top portion of so_utils.
-
-Or you can create an ***so_include*** file including the so_utils variables to prevent overwriting during updates.
-
-You can configure the following settings in the top of ***so_utils*** or in a seperate file named ***so_include***.
+The following settings can be configured in the top of ***so_utils*** or in a seperate file named ***so_include***.
 
 Variable | Purpose
 -------- | -------
