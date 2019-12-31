@@ -119,8 +119,8 @@ function su_ruleUpdate {
 # LOCAL_NIDS_RULE_TUNING is enabled (optionally enables).
 ######################################################################
 function su_signatureUpdate {
-	temp_path=`cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^temp_path=" | cut -f2 -d'=' | cut -f1 -d'#'`
-	local_tuning=`cat /etc/nsm/securityonion.conf | grep -i "^LOCAL_NIDS_RULE_TUNING=" | cut -f2 -d"="`
+	temp_path=`grep -i "^temp_path=" /etc/nsm/pulledpork/pulledpork.conf | cut -f2 -d'=' | cut -f1 -d'#'`
+	local_tuning=`grep -i "^LOCAL_NIDS_RULE_TUNING=" /etc/nsm/securityonion.conf | cut -f2 -d"="`
 	searchdir=/media
 	snort_version=`snort -V 2>&1 | grep -Po "(\d+\.){3}\d+" | tr -d .`
 
@@ -129,7 +129,7 @@ function su_signatureUpdate {
 		echo "Local NIDS tuning is not enabled! Manually installing signatures will not take effect until enabled."
 		echo -n "Would you like to enable local NIDS tuning? [Y/n]: "; read junk; junk=${junk:=Y}
 		if [[ "$junk" == [yY] ]]; then
-			sed -i "`cat /etc/nsm/securityonion.conf | grep -in '^LOCAL_NIDS_RULE_TUNING=' | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
+			sed -i "`grep -in '^LOCAL_NIDS_RULE_TUNING=' /etc/nsm/securityonion.conf | cut -f1 -d':'`s/=\w*/=yes/" /etc/nsm/securityonion.conf
 			echo "LOCAL_NIDS_RULE_TUNING is now enabled!"
 
 		else
@@ -137,7 +137,7 @@ function su_signatureUpdate {
 		fi
 	fi
 
-	cat /etc/nsm/pulledpork/pulledpork.conf | grep -i "^rule_url=" | cut -f2 -d'|' > /tmp/pulledpork_signatures
+	grep -i "^rule_url=" /etc/nsm/pulledpork/pulledpork.conf | cut -f2 -d'|' > /tmp/pulledpork_signatures
 	sed -i "s/snortrules-snapshot/snortrules-snapshot-$snort_version/" /tmp/pulledpork_signatures
 	echo "The following signatures will be searched for:"
 	cat /tmp/pulledpork_signatures
@@ -363,8 +363,8 @@ function su_editDisSID {
 # location: /var/backups/rules.
 ######################################################################
 function su_ruleMenu {
-	RULE_PATH=`cat /etc/nsm/templates/snort/snort.conf | grep "^var RULE_PATH" | cut -f3 -d' '`
-	rules=`cat /etc/nsm/templates/snort/snort.conf | grep "^include .*\.rules" | grep -v "downloaded\.rules" | cut -f2 -d' '`
+	RULE_PATH=`grep "^var RULE_PATH" /etc/nsm/templates/snort/snort.conf | cut -f3 -d' '`
+	rules=`grep "^include .*\.rules" /etc/nsm/templates/snort/snort.conf | grep -v "downloaded\.rules" | cut -f2 -d' '`
 	rules="${rules//\$RULE_PATH/$RULE_PATH}"
 	total=`echo "$rules" | wc -l`
 
