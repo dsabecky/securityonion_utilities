@@ -211,6 +211,9 @@ function su_sensorRestart {
 function su_clearBacklog {
 	gid=; sid=
 
+	mysql --defaults-file=/etc/mysql/debian.cnf -Dsecurityonion_db -e "SELECT COUNT(*) AS count, signature_gen, signature_id, signature FROM event WHERE status=0 GROUP BY signature ORDER BY count DESC LIMIT 5;" 
+	echo ""
+
 	echo "This will clear (flag) events with the specified signature (Q to cancel)."
 	while ! [[ "$gid" =~ ^[0-9]+$ ]] && ! [[ "$gid" == [qQ] ]]; do echo -n "Enter the Generator ID (GID) [1]: "; read gid; gid=${gid:=1}; done
 	if [[ "$gid" == [qQ] ]]; then su_mainMenu; fi

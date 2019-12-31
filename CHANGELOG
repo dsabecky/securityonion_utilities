@@ -8,6 +8,13 @@
 #
 ######################################################################
 #
+# Build 14 (xx/xx/xxxx)
+#######################
+#
+# + Clear backlogged events now shows top 5 current events before
+#   prompting for input.
+#
+#
 # Hotfix (12/31/2019)
 #######################
 #
